@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -81,33 +82,23 @@ const Index = () => {
     for (let i = 0; i < csvData.length; i++) {
       const rowStartTime = Date.now();
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
+        const response = await axios.post('/api/v1/messages', {
+          model: "claude-3-opus-20240229",
+          max_tokens: 1000,
+          messages: [
+            {
+              role: "user",
+              content: `Describe the location based on this data: ${csvData[i].join(', ')}`
+            }
+          ]
+        }, {
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
-            'Origin': window.location.origin,
-          },
-          body: JSON.stringify({
-            model: "claude-3-opus-20240229",
-            max_tokens: 1000,
-            messages: [
-              {
-                role: "user",
-                content: `Describe the location based on this data: ${csvData[i].join(', ')}`
-              }
-            ]
-          }),
+          }
         });
 
-        if (!response.ok) {
-          const errorBody = await response.text();
-          console.error("API Error Response:", errorBody);
-          throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
-        }
-
-        const data = await response.json();
-        const enrichedDescription = data.content[0].text;
+        const enrichedDescription = response.data.content[0].text;
         
         const enrichedRow = [...csvData[i], enrichedDescription];
         setCsvData(prev => {
@@ -123,12 +114,12 @@ const Index = () => {
       } catch (err) {
         console.error("Error details:", err);
         let errorMessage = `Error enriching row ${i + 1}: ${err.message}`;
-        if (err.message.includes('Failed to fetch')) {
-          errorMessage += '. This might be due to CORS issues. Please check if you have a CORS browser extension enabled and try disabling it.';
-        } else if (err.message.includes('429')) {
-          errorMessage += '. The API rate limit has been exceeded. Please wait and try again later.';
-        } else if (err.message.includes('401')) {
-          errorMessage += '. Authentication failed. Please check your API key.';
+        if (err.response) {
+          console.error('Error Response:', err.response.data);
+          errorMessage += ` Status: ${err.response.status}`;
+        } else if (err.request) {
+          console.error('Error Request:', err.request);
+          errorMessage += ' No response received from the server.';
         }
         setError(errorMessage);
         break;
