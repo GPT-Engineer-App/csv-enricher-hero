@@ -100,7 +100,9 @@ const Index = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
+          const errorBody = await response.text();
+          console.error("API Error Response:", errorBody);
+          throw new Error(`API request failed with status ${response.status}: ${errorBody}`);
         }
 
         const data = await response.json();
@@ -118,7 +120,16 @@ const Index = () => {
         const rowProcessTime = Date.now() - rowStartTime;
         setAvgProcessTime(prev => (prev * i + rowProcessTime) / (i + 1));
       } catch (err) {
-        setError(`Error enriching row ${i + 1}: ${err.message}`);
+        console.error("Error details:", err);
+        let errorMessage = `Error enriching row ${i + 1}: ${err.message}`;
+        if (err.message.includes('Failed to fetch')) {
+          errorMessage += '. This might be due to CORS issues or network problems.';
+        } else if (err.message.includes('429')) {
+          errorMessage += '. The API rate limit has been exceeded. Please wait and try again later.';
+        } else if (err.message.includes('401')) {
+          errorMessage += '. Authentication failed. Please check your API key.';
+        }
+        setError(errorMessage);
         break;
       }
     }
@@ -143,7 +154,27 @@ const Index = () => {
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error}
+            {error.includes('CORS') && (
+              <p className="mt-2">
+                This might be due to CORS issues. Please ensure you're running this application from a server, not opening the HTML file directly.
+              </p>
+            )}
+            {error.includes('rate limit') && (
+              <p className="mt-2">
+                The API rate limit has been exceeded. Please wait a few minutes and try again.
+              </p>
+            )}
+            {error.includes('Authentication failed') && (
+              <p className="mt-2">
+                Please check if the API key is correct and has the necessary permissions.
+              </p>
+            )}
+            <p className="mt-2">
+              For more detailed error information, please check the browser console (press F12 and go to the Console tab).
+            </p>
+          </AlertDescription>
         </Alert>
       )}
 
