@@ -29,6 +29,19 @@ const Index = () => {
     return () => clearInterval(timer);
   }, [isEnriching]);
 
+  useEffect(() => {
+    // Request temporary access to the demo server
+    fetch('https://cors-anywhere.herokuapp.com/corsdemo')
+      .then(response => response.text())
+      .then(result => {
+        console.log('Temporary access to CORS Anywhere granted');
+      })
+      .catch(error => {
+        console.error('Error requesting temporary access:', error);
+        setError('Failed to get temporary access to CORS proxy. Please visit https://cors-anywhere.herokuapp.com/corsdemo and request temporary access.');
+      });
+  }, []);
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) {
@@ -77,11 +90,12 @@ const Index = () => {
     setError(null);
 
     const apiKey = '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';
+    const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 
     for (let i = 0; i < csvData.length; i++) {
       const rowStartTime = Date.now();
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        const response = await fetch(corsProxy + 'https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -118,6 +132,7 @@ const Index = () => {
         const rowProcessTime = Date.now() - rowStartTime;
         setAvgProcessTime(prev => (prev * i + rowProcessTime) / (i + 1));
       } catch (err) {
+        console.error("Error details:", err);
         setError(`Error enriching row ${i + 1}: ${err.message}`);
         break;
       }
@@ -143,7 +158,18 @@ const Index = () => {
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>
+            {error}
+            {error.includes('CORS proxy') && (
+              <p className="mt-2">
+                Please visit{' '}
+                <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" rel="noopener noreferrer" className="underline">
+                  https://cors-anywhere.herokuapp.com/corsdemo
+                </a>{' '}
+                and request temporary access, then try again.
+              </p>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
