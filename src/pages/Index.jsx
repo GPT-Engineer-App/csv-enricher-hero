@@ -33,7 +33,16 @@ const Index = () => {
     reader.onload = (e) => {
       const text = e.target.result;
       const rows = text.split('\n').map(row => row.split(','));
-      setCsvData(rows);
+      
+      // Ensure each row has 5 columns (ID, Name, Email, Company, Position)
+      const processedRows = rows.map(row => {
+        while (row.length < 5) {
+          row.push(''); // Add empty strings for missing columns
+        }
+        return row.slice(0, 5); // Limit to 5 columns
+      });
+
+      setCsvData(processedRows);
     };
 
     reader.readAsText(file);
@@ -52,7 +61,10 @@ const Index = () => {
       // Simulating API call to Claude
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const enrichedRow = [...csvData[i], "Enriched description for row " + (i + 1)];
+      // Simulate getting an enriched description from an API
+      const enrichedDescription = `Enriched description for ${csvData[i][1]} from ${csvData[i][3]}`;
+      
+      const enrichedRow = [...csvData[i], enrichedDescription];
       setCsvData(prev => {
         const newData = [...prev];
         newData[i] = enrichedRow;
@@ -122,9 +134,11 @@ const Index = () => {
           <Table className="mb-4">
             <TableHeader>
               <TableRow>
-                {csvData[0].map((header, index) => (
-                  <TableHead key={index}>{header}</TableHead>
-                ))}
+                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Company</TableHead>
+                <TableHead>Position</TableHead>
                 <TableHead>Enriched Description</TableHead>
               </TableRow>
             </TableHeader>
