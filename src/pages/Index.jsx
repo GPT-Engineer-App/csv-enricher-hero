@@ -86,6 +86,7 @@ const Index = () => {
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': apiKey,
+            'Origin': window.location.origin,
           },
           body: JSON.stringify({
             model: "claude-3-opus-20240229",
@@ -123,7 +124,7 @@ const Index = () => {
         console.error("Error details:", err);
         let errorMessage = `Error enriching row ${i + 1}: ${err.message}`;
         if (err.message.includes('Failed to fetch')) {
-          errorMessage += '. This might be due to CORS issues or network problems.';
+          errorMessage += '. This might be due to CORS issues. Please check if you have a CORS browser extension enabled and try disabling it.';
         } else if (err.message.includes('429')) {
           errorMessage += '. The API rate limit has been exceeded. Please wait and try again later.';
         } else if (err.message.includes('401')) {
@@ -158,7 +159,7 @@ const Index = () => {
             {error}
             {error.includes('CORS') && (
               <p className="mt-2">
-                This might be due to CORS issues. Please ensure you're running this application from a server, not opening the HTML file directly.
+                This might be due to CORS issues. If you have any CORS-related browser extensions, try disabling them and refresh the page.
               </p>
             )}
             {error.includes('rate limit') && (
