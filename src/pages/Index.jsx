@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
   const [csvData, setCsvData] = useState([]);
+  const [headers, setHeaders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [enrichmentProgress, setEnrichmentProgress] = useState(0);
   const [isEnriching, setIsEnriching] = useState(false);
@@ -34,15 +35,11 @@ const Index = () => {
       const text = e.target.result;
       const rows = text.split('\n').map(row => row.split(','));
       
-      // Ensure each row has 5 columns (ID, Name, Email, Company, Position)
-      const processedRows = rows.map(row => {
-        while (row.length < 5) {
-          row.push(''); // Add empty strings for missing columns
-        }
-        return row.slice(0, 5); // Limit to 5 columns
-      });
-
-      setCsvData(processedRows);
+      if (rows.length > 0) {
+        const csvHeaders = rows[0];
+        setHeaders([...csvHeaders, 'Enriched Description']);
+        setCsvData(rows.slice(1));
+      }
     };
 
     reader.readAsText(file);
@@ -62,7 +59,7 @@ const Index = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Simulate getting an enriched description from an API
-      const enrichedDescription = `Enriched description for ${csvData[i][1]} from ${csvData[i][3]}`;
+      const enrichedDescription = `Enriched description for row ${i + 1}`;
       
       const enrichedRow = [...csvData[i], enrichedDescription];
       setCsvData(prev => {
@@ -134,12 +131,9 @@ const Index = () => {
           <Table className="mb-4">
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>Enriched Description</TableHead>
+                {headers.map((header, index) => (
+                  <TableHead key={index}>{header}</TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
