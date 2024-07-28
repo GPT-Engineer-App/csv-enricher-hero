@@ -1,16 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Upload } from "lucide-react";
+import { Upload, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
   const [csvData, setCsvData] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [enrichmentProgress, setEnrichmentProgress] = useState(0);
   const [isEnriching, setIsEnriching] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [avgProcessTime, setAvgProcessTime] = useState(0);
   const rowsPerPage = 10;
+
+  useEffect(() => {
+    let timer;
+    if (isEnriching) {
+      timer = setInterval(() => {
+        setElapsedTime(prevTime => prevTime + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isEnriching]);
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -28,8 +42,13 @@ const Index = () => {
   const startEnrichment = async () => {
     setIsEnriching(true);
     setEnrichmentProgress(0);
+    setStartTime(Date.now());
+    setElapsedTime(0);
+    setAvgProcessTime(0);
 
+    const startTime = Date.now();
     for (let i = 0; i < csvData.length; i++) {
+      const rowStartTime = Date.now();
       // Simulating API call to Claude
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -41,6 +60,9 @@ const Index = () => {
       });
 
       setEnrichmentProgress(((i + 1) / csvData.length) * 100);
+      
+      const rowProcessTime = Date.now() - rowStartTime;
+      setAvgProcessTime(prev => (prev * i + rowProcessTime) / (i + 1));
     }
 
     setIsEnriching(false);
@@ -58,6 +80,42 @@ const Index = () => {
       <div className="mb-4">
         <Input type="file" accept=".csv" onChange={handleFileUpload} />
       </div>
+
+      {csvData.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enrichment Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={startEnrichment} disabled={isEnriching} className="w-full">
+                <Upload className="mr-2 h-4 w-4" /> {isEnriching ? 'Enriching...' : 'Start Enrichment'}
+              </Button>
+              {isEnriching && (
+                <Progress value={enrichmentProgress} className="mt-2" />
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Elapsed Time</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center">
+              <Clock className="mr-2 h-4 w-4" />
+              <span>{elapsedTime} seconds</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Avg. Process Time</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center">
+              <Clock className="mr-2 h-4 w-4" />
+              <span>{avgProcessTime.toFixed(2)} ms per row</span>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {csvData.length > 0 && (
         <>
@@ -97,13 +155,7 @@ const Index = () => {
             </Button>
           </div>
 
-          <Button onClick={startEnrichment} disabled={isEnriching} className="mb-4">
-            <Upload className="mr-2 h-4 w-4" /> Start Enrichment
-          </Button>
-
-          {isEnriching && (
-            <Progress value={enrichmentProgress} className="w-full" />
-          )}
+          {/* Removed old enrichment button and progress bar */}
         </>
       )}
     </div>
